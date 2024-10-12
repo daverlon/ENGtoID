@@ -1,0 +1,14 @@
+Structure
+
+bash setup.sh
+
+1.  downlaod_dataset.py
+
+2.  clean_dataset.py
+    clean up / filter bad data
+
+3.  generate_vocab.py
+    use cleaned / filtered data to generate vocab
+
+4.  encode_dataset.py
+    use vocab to encode clean data
