@@ -2,7 +2,7 @@ import os
 
 from config import *
 
-from utils.preprocessing import tokenize, save_vocab_to_disk
+from preprocessing.preprocessing import tokenize, save_vocab_to_disk
 
 from datasets import Dataset
 from tqdm import tqdm
@@ -31,8 +31,11 @@ if __name__ == "__main__":
         for tk_eng in tokens["eng"]:
             vocab["eng"].add(tk_eng)
 
-    vocab["id"] = sorted(vocab["id"])
-    vocab["eng"] = sorted(vocab["eng"])
+    # vocab["id"] = sorted(vocab["id"])
+    # vocab["eng"] = sorted(vocab["eng"])
+
+    vocab["id"] = ["<EOS>"] + list(vocab["id"])
+    vocab["eng"] = ["<EOS>"] + list(vocab["eng"])
 
     print(f"[Vocab] Found {len(vocab["id"])} Indonesian tokens.")
     print(f"[Vocab] Found {len(vocab["eng"])} English tokens.")

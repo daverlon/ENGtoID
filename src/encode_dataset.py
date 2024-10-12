@@ -2,11 +2,13 @@ import os
 
 from config import *
 
-from utils.preprocessing import load_vocab_from_disk, tokenize
-from utils.coder import Coder
+from preprocessing.preprocessing import load_vocab_from_disk, tokenize
+from preprocessing.coder import Coder
 
 from datasets import Dataset
 from tqdm import tqdm
+
+END_TOKEN = "<EOS>" # end of sentence
 
 if __name__ == "__main__":
 
@@ -50,7 +52,7 @@ if __name__ == "__main__":
         encoded_eng_tokens = coder_eng.encode(eng_tokens)
 
         # ds[i] = {"id": encoded_id_tokens, "eng": encoded_eng_tokens}
-        encoded_ds.append({"id": encoded_id_tokens, "eng": encoded_eng_tokens})
+        encoded_ds.append({"id": encoded_id_tokens + [0], "eng": encoded_eng_tokens + [0]})
     
     # save the encoded data
     ds = Dataset.from_dict({"text": encoded_ds})
@@ -73,7 +75,7 @@ if __name__ == "__main__":
         encoded_id = coder_id.encode(id)
         encoded_eng = coder_eng.encode(eng)
 
-        encoded_ds.append({"id": encoded_id, "eng": encoded_eng})
+        encoded_ds.append({"id": encoded_id + [0], "eng": encoded_eng + [0]})
     
     # save the encoded data
     ds = Dataset.from_dict({"text": encoded_ds})

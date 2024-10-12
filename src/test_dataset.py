@@ -1,4 +1,4 @@
-from dataset import ENGtoID
+from dataset.ENGtoID import ENGtoID
 
 import torch
 import torchvision
