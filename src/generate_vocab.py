@@ -34,8 +34,8 @@ if __name__ == "__main__":
     # vocab["id"] = sorted(vocab["id"])
     # vocab["eng"] = sorted(vocab["eng"])
 
-    vocab["id"] = ["<EOS>"] + list(vocab["id"])
-    vocab["eng"] = ["<EOS>"] + list(vocab["eng"])
+    vocab["id"] = ["<EOS>", "<UNK>"] + list(vocab["id"])
+    vocab["eng"] = ["<EOS>", "<UNK>"] + list(vocab["eng"])
 
     print(f"[Vocab] Found {len(vocab["id"])} Indonesian tokens.")
     print(f"[Vocab] Found {len(vocab["eng"])} English tokens.")

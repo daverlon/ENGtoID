@@ -2,6 +2,7 @@ import re
 import json
 
 valid_pattern = r'^[a-zA-Z0-9\s.,?!;:\'"()\\-]*$'
+tokenize_reg = r'(\s|,|!|\?|\.|:|;|\'|\"|“|”|‘|’|\(|\)|\[|\]|\{|\})'
 
 def is_text_clean(s: str) -> bool:
     if s is None: 
@@ -42,21 +43,27 @@ def tokenize(s: str) -> map:
 
     ret = {"id": list(), "eng": list()}
 
-    reg = r'(\s|,|!|\?|\.|:|;|\'|\"|“|”|‘|’|\(|\)|\[|\]|\{|\})'
-
     id, eng = [*s.split("###>")]
 
     # id
-    tks = re.split(reg, id.strip()) # split with various symbols (excluding hyphens)
+    tks = re.split(tokenize_reg, id.strip()) # split with various symbols (excluding hyphens)
     for tk in tks:
         if tk.replace(' ', '') != '':
             ret["id"].append(tk)
     # eng
-    tks = re.split(reg, eng.strip())
+    tks = re.split(tokenize_reg, eng.strip())
     for tk in tks:
         if tk.replace(' ', '') != '':
             ret["eng"].append(tk)
     
+    return ret
+
+def tokenize_english(s: str) -> list:
+    ret = []
+    tks = re.split(tokenize_reg, s)
+    for tk in tks:
+        if tk.replace(' ', '') != '':
+            ret.append(tk)
     return ret
 
 def save_vocab_to_disk(tokens: dict, filename: str):

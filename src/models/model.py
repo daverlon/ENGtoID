@@ -18,14 +18,13 @@ class Model(nn.Module):
 
         # logs
         self.train_losses = []
-        self.train_accs = []
         self.test_losses = []
-        self.test_accs = []
 
-    def init(self):
+    def init(self, lr):
         self.layer_stack = self.init_layer_stack()
         self.criterion = self.init_criterion()
-        self.optim = self.init_optim()      
+        self.optim = self.init_optim()  
+        self.set_learning_rate(lr)
 
     def init_layer_stack(self):
         raise NotImplementedError("Required implementation for init_layer_stack.")
@@ -61,9 +60,7 @@ class Model(nn.Module):
             return     
             
         np.save(os.path.join(self.save_dir, self.name + "_train_losses.npy"), np.array(self.train_losses))
-        np.save(os.path.join(self.save_dir, self.name + "_train_accs.npy"), np.array(self.train_accs))
         np.save(os.path.join(self.save_dir, self.name + "_test_losses.npy"), np.array(self.test_losses))
-        np.save(os.path.join(self.save_dir, self.name + "_test_accs.npy"), np.array(self.test_accs))
 
     def load_model(self):
         if self.name == "": 
@@ -88,9 +85,7 @@ class Model(nn.Module):
         if not os.path.exists(os.path.join(self.save_dir, self.name + "_train_losses.npy")): return
 
         self.train_losses = np.load(os.path.join(self.save_dir, self.name + "_train_losses.npy")).tolist()
-        self.train_accs = np.load(os.path.join(self.save_dir, self.name + "_train_accs.npy")).tolist()
         self.test_losses = np.load(os.path.join(self.save_dir, self.name + "_test_losses.npy")).tolist()
-        self.test_accs = np.load(os.path.join(self.save_dir, self.name + "_test_accs.npy")).tolist()
     
     def __repr__(self):
         return str(self.layer_stack)
@@ -107,4 +102,3 @@ class Model(nn.Module):
 
     def clear_logs(self):
         self.logs = []
-        self.accs = []

@@ -19,7 +19,9 @@ class ENGtoID(torchDataset):
 
     def __getitem__(self, i):
         # print(self.data[i]["eng"], "-->", self.data[i]["id"])
-        x, y = torch.Tensor(self.data[i]["eng"]), torch.Tensor(self.data[i]["id"])
+
+        # tensor for int/long, Tensor for float
+        x, y = torch.tensor(self.data[i]["eng"]), torch.tensor(self.data[i]["id"])
 
         if self.transform:
             x = self.transform(x)
@@ -27,20 +29,12 @@ class ENGtoID(torchDataset):
 
     @staticmethod
     def collate_fn(batch):
-        # print(batch)
-        # x, y = zip(*batch)
-        # padded_x = pad_sequence(x, batch_first=True, padding_value=0)
-        # padded_y = pad_sequence(y, batch_first=True, padding_value=0)
-        # lengths = [len(seq) for seq in x]
-        # return padded_x, padded_y, torch.tensor(lengths)
-
+        #print(batch)
         x, y = zip(*batch)
+        padded_x = pad_sequence(x, batch_first=True, padding_value=0)
+        padded_y = pad_sequence(y, batch_first=True, padding_value=0)
+        lengths_x = [len(seq) for seq in x]
+        lengths_y = [len(seq) for seq in y]
+        return padded_x, padded_y, torch.tensor(lengths_x), torch.tensor(lengths_y)
 
-       # Pad input sequences to fixed_max_length
-    padded_inputs = pad_sequence([torch.cat((seq, torch.tensor([0] * (fixed_max_length - len(seq))))) for seq in inputs], batch_first=True, padding_value=0)
-    
-    # Pad target sequences to fixed_max_length
-    padded_targets = pad_sequence([torch.cat((seq, torch.tensor([0] * (fixed_max_length - len(seq))))) for seq in targets], batch_first=True, padding_value=0)
-
-    return padded_inputs, padded_targets
 
