@@ -31,8 +31,8 @@ class ENGtoID(torchDataset):
     def collate_fn(batch):
         #print(batch)
         x, y = zip(*batch)
-        padded_x = pad_sequence(x, batch_first=True, padding_value=0)
-        padded_y = pad_sequence(y, batch_first=True, padding_value=0)
+        padded_x = pad_sequence(x, batch_first=True, padding_value=PAD_IDX)
+        padded_y = pad_sequence(y, batch_first=True, padding_value=PAD_IDX)
         lengths_x = [len(seq) for seq in x]
         lengths_y = [len(seq) for seq in y]
         return padded_x, padded_y, torch.tensor(lengths_x), torch.tensor(lengths_y)

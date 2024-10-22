@@ -1,6 +1,6 @@
 from config import *
 
-from models.seq2seq import Encoder, Decoder, Seq2Seq
+from models.seq2seq_rnn import Encoder, Decoder, Seq2Seq
 from trainers.trainer import Trainer
 from dataset.ENGtoID import ENGtoID
 
@@ -25,6 +25,7 @@ if __name__ == "__main__":
     dataloader_train = DataLoader(dataset_train, hyper_params["bs"], True, collate_fn=ENGtoID.collate_fn)
 
     # having a batch size for the valid dataloader makes the valid_epoch loop more similar to the epoch (train) loop
+    dataloader_valid = DataLoader(dataset_valid, 1, False)
     dataloader_valid = DataLoader(dataset_valid, hyper_params["bs"], False, collate_fn=ENGtoID.collate_fn)
 
     hidden_state_size = 128

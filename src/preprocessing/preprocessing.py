@@ -1,3 +1,5 @@
+from config import * 
+
 import re
 import json
 
@@ -55,7 +57,11 @@ def tokenize(s: str) -> map:
     for tk in tks:
         if tk.replace(' ', '') != '':
             ret["eng"].append(tk)
-    
+
+    ret["id"].append(EOS)
+    ret["eng"].append(EOS)
+
+    # print(ret)
     return ret
 
 def tokenize_english(s: str) -> list:

@@ -50,9 +50,10 @@ if __name__ == "__main__":
 
         encoded_id_tokens = coder_id.encode(id_tokens)
         encoded_eng_tokens = coder_eng.encode(eng_tokens)
+        # print(encoded_id_tokens, encoded_eng_tokens)
 
         # ds[i] = {"id": encoded_id_tokens, "eng": encoded_eng_tokens}
-        encoded_ds.append({"id": encoded_id_tokens + [0], "eng": encoded_eng_tokens + [0]})
+        encoded_ds.append({"id": encoded_id_tokens, "eng": encoded_eng_tokens})
     
     # save the encoded data
     ds = Dataset.from_dict({"text": encoded_ds})
@@ -75,7 +76,7 @@ if __name__ == "__main__":
         encoded_id = coder_id.encode(id)
         encoded_eng = coder_eng.encode(eng)
 
-        encoded_ds.append({"id": encoded_id + [0], "eng": encoded_eng + [0]})
+        encoded_ds.append({"id": encoded_id, "eng": encoded_eng})
     
     # save the encoded data
     ds = Dataset.from_dict({"text": encoded_ds})
