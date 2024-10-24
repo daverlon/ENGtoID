@@ -2,7 +2,7 @@ import os
 
 from config import *
 
-from preprocessing.preprocessing import tokenize, save_vocab_to_disk
+from utils.preprocessing import tokenize, save_vocab_to_disk
 
 from datasets import Dataset
 from tqdm import tqdm

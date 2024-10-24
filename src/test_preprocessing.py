@@ -1,5 +1,5 @@
 
-from preprocessing.preprocessing import attempt_to_clean, is_text_clean
+from utils.preprocessing import attempt_to_clean, is_text_clean
 
 test_samples = [
     ' Harus gasket Anda. ###> Must be your gaskets. ',

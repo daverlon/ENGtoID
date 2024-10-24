@@ -1,6 +1,9 @@
+from config import PAD_IDX
+
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # base class
 class Trainer():
@@ -25,10 +28,10 @@ class Trainer():
 
     # model: torch.nn.Module
     # data: torch.DataLoader
-    def fit(self, model, train_dataloader, test_dataloader):
+    def fit(self, model, train_dataloader, valid_dataloader):
         # get data
         self.train_dataloader = train_dataloader
-        # self.test_dataloader = test_dataloader
+        self.valid_dataloader = valid_dataloader
         # get model
         self.model = model.to(self.device)
 
@@ -38,54 +41,49 @@ class Trainer():
         for epoch in range(self.n_epochs):
             print(f"----- Epoch {epoch} -----")
 
-            self.fit_epoch(epoch)
-            # self.valid_epoch(epoch)
+            # train_loss, train_acc = self.fit_epoch(epoch)
+            valid_loss, valid_acc = self.valid_epoch(epoch)
             
-            if self.save_checkpoints:
-                model.save_model()
+            if self.save_checkpoints: model.save_model()
+
         print("---\nFinished training.")
 
     # return the epoch loss
     def fit_epoch(self, epoch) -> float:
+        self.model.train()
+        self.model = self.model.to(self.device)
+
         epoch_loss = 0.0
         epoch_accuracy = 0.0
-
         n_batches = len(self.train_dataloader)
-
-        self.model = self.model.to(self.device)
-        # may use model.train() to ensure the gradients are able to be updated
-        self.model.train()
 
         epoch_losses = []
         epoch_accs = []
 
         # get the batch from the dataloader
-        for i, batch in enumerate(self.train_dataloader):
-
-            x, y, x_l, _ = batch
+        for i, batch in enumerate(tqdm(self.train_dataloader)):
 
             # send the data to the same device as the model
+            x, y, x_l, _ = batch
             x = x.to(self.device)
             y = y.to(self.device)
 
+            # reset the gradients
             self.model.optim.zero_grad()
 
             # make the prediction
             out = self.model(x, x_l, y)
-
-            # reshape the output
             out = out.view(-1, out.size(-1))
-
             y = y.view(-1)
 
             # calculate the loss
             loss = self.model.criterion(out, y)
-            batch_loss = loss.detach().cpu()
+            batch_loss = loss.item()
 
             # calculate the accuracy
-            _, predicted = torch.max(out, dim=1)
-            correct = (predicted == y).sum().item()
-            batch_accuracy = (correct / y.numel()) * 100.0
+            pad_mask = (y != PAD_IDX)
+            correct = (torch.max(out, dim=1)[1][pad_mask] == y[pad_mask]).sum().item()
+            batch_accuracy = (correct / pad_mask.sum().item()) * 100.0 if pad_mask.sum().item() > 0 else 0.0
 
             # step backward to calculate gradients (back propagation)
             loss.backward()
@@ -93,13 +91,11 @@ class Trainer():
             # optimize the weights based on the gradients
             self.model.optim.step()
 
-            # data logging ---
+            # data logging
             epoch_loss += batch_loss
             epoch_accuracy += batch_accuracy
-
             epoch_losses.append(batch_loss)
             epoch_accs.append(batch_accuracy)
-            
             self.model.train_losses.append(batch_loss)
             self.model.train_accs.append(batch_accuracy)
 
@@ -108,86 +104,118 @@ class Trainer():
             self.writer.add_scalars(f"Loss({self.model.name})", {'train':batch_loss}, step)
             self.writer.add_scalars(f"Accuracy({self.model.name})", {'train':batch_accuracy}, step)
 
-            print(f"Batch: {i}/{n_batches}")
+            print(f"[Valid] Batch: {i}/{n_batches}")
             print(f"\tTrain Loss: {batch_loss:.6f}")
             print(f"\tTrain Acc: {batch_accuracy:.6f}")
 
             # clean up
+            del correct
+            del pad_mask
             del loss
             del out
             del y
             del x
             torch.cuda.empty_cache()
             
-            if i % 100 == 0:
-                if self.save_checkpoints:
-                    self.model.save_model()
-                plt.title(self.model.name + " Training set loss: BS=48, LR=0.001, EPOCHS=5")
+            if i % 100 == 0 and i > 0:
+                if self.save_checkpoints: self.model.save_model()
+                plt.title(self.model.get_name_with_hyper_params() + " Training Performance")
                 plt.grid()
-                plt.ylabel("Loss")
                 plt.xlabel("Batch")
-                plt.plot(self.model.train_losses, c='b')
-                plt.plot(self.model.train_accs, c='y')
-                plt.savefig("./models/checkpoints/" + self.model.name + "/full_loss_plot.png")
+                plt.plot(self.model.train_losses, c='b', label="Loss")
+                plt.plot(self.model.train_accs, c='y', label="Acc")
+                plt.legend()
+                plt.savefig("./checkpoints/" + self.model.name + "/train_plot_full.png")
                 plt.close()
+        # end of loop
 
         epoch_loss = epoch_loss / n_batches
-        print(f"[Train] Average Loss: {epoch_loss:.6f}")
+        print(f"[Train] Average Epoch Loss: {epoch_loss:.6f}")
         epoch_accuracy = (epoch_accuracy / n_batches) * 100.0
-        print(f"[Train] Average Accuracy: {epoch_accuracy:.6f}")
+        print(f"[Train] Average Epoch Accuracy: {epoch_accuracy:.6f}")
 
-        plt.title(self.model.name + f" Epoch {epoch} training loss")
-        plt.grid()
-        plt.ylabel("Loss")
-        plt.xlabel("Batch")
-        plt.plot(epoch_losses, c='b')
-        plt.plot(epoch_accs, c='y')
-        plt.savefig("./models/checkpoints/" + self.model.name + f"/epoch_{epoch}_loss_plot.png")
-        plt.close()
-
-        return epoch_loss
+        return epoch_loss, epoch_accuracy
 
     # based on the training epoch method above, but without training (no .backward(), etc)
-    # return the valid epoch loss
-    # def valid_epoch(self, epoch) -> float:
-    #     valid_loss = 0.0
-    #     n_batches = len(self.test_dataloader)
-        
-    #     # alternative to model.eval()
-    #     # not necessary to have both
-    #     self.model = self.model.to(torch.device("cpu"))
-    #     with torch.no_grad():
-    #         self.model.eval()
+    def valid_epoch(self, epoch) -> float:
+        self.model.eval()
+        with torch.no_grad():
 
-    #         # load batch using dataloader
-    #         for i, batch in enumerate(self.test_dataloader):
-    #             # x, y = batch
-    #             x, y = batch
-    #             x_l = torch.tensor([x.shape[1]])
+            epoch_loss = 0.0
+            epoch_accuracy = 0.0
+            n_batches = len(self.valid_dataloader)
+            
+            epoch_losses = []
+            epoch_accs = []
+            
+            # load batch using dataloader
+            for i, batch in enumerate(self.valid_dataloader):
 
-    #             out = self.model(out, x_l, None)
+                x, y = batch
+                x = x.to(self.device)
+                y = y.to(self.device)
+
+                y = y.view(-1)
+                # print(x, x.shape)
+                # print(y, y.shape)
+
+                # make the prediction
+                out = self.model(x, torch.tensor([x.shape[1]], requires_grad=False), None)
+                out = out.view(-1, out.size(-1))
+
+                # calculate loss
+                loss = self.model.criterion(out, y)
+                batch_loss = loss.detach().cpu()
+
+
+                # calculate accuracy
+                pad_mask = (y != PAD_IDX)
+                correct = (torch.max(out, dim=1)[1][pad_mask] == y[pad_mask]).sum().item()
+                batch_accuracy = (correct / pad_mask.sum().item()) * 100.0 if pad_mask.sum().item() > 0 else 0.0
+
+                # log data
+                epoch_loss += batch_loss
+                epoch_accuracy += batch_accuracy
+                epoch_losses.append(batch_loss)
+                epoch_accs.append(batch_accuracy)
+                self.model.valid_losses.append(batch_loss)
+                self.model.valid_accs.append(batch_accuracy)
+
+                # add data to tensorboard
+                step = epoch * n_batches + i
+                self.writer.add_scalars(f"Loss({self.model.name})", {'valid':batch_loss}, step)
+                self.writer.add_scalars(f"Accuracy({self.model.name})", {'valid':batch_accuracy}, step)
+
+                print(f"[Valid] Batch: {i}/{n_batches}")
+                print(f"\tValid Loss: {batch_loss:.6f}")
+                print(f"\tValid Acc: {batch_accuracy:.6f}")
+
+                # clean up
+                del correct
+                del pad_mask
+                del loss
+                del out
+                del y
+                del x
+                torch.cuda.empty_cache()
                 
-    #             # reshape output
-    #             out = out.view(-1, out.size(-1))
-    #             y = y.view(-1)
+                if i % 100 == 0 and i > 0:
+                    plt.title(self.model.get_name_with_hyper_params() + " Validation Performance")
+                    plt.grid()
+                    plt.xlabel("Batch")
+                    plt.plot(self.model.valid_losses, c='b', label="Loss")
+                    plt.plot(self.model.valid_accs, c='y', label="Acc")
+                    plt.legend()
+                    plt.savefig("./checkpoints/" + self.model.name + "/valid_plot_full.png")
+                    plt.close()
+            # end of loop
 
-    #             # calculate loss
-    #             loss = self.model.loss(out, y)
-    #             batch_loss = loss.detach().cpu()
-
-    #             valid_loss += batch_loss
-
-    #             self.model.test_losses.append(batch_loss)
-
-    #             step = epoch * n_batches + i
-    #             self.writer.add_scalars(f"Loss({self.model.name})", {'valid':batch_loss}, step)
-    #             print(f"\tValid Loss: {batch_loss:.6f}")
-
-    #         valid_loss = valid_loss / n_batches
+            epoch_loss = epoch_loss / n_batches
+            print(f"[Valid] Average Epoch Loss: {epoch_loss:.6f}")
+            epoch_accuracy = (epoch_accuracy / n_batches) * 100.0
+            print(f"[Valid] Average Epoch Accuracy: {epoch_accuracy:.6f}")
             
-    #         print(f"[Valid] Average Loss: {epoch_loss:.6f}")
-            
-    #         return epoch_loss
+            return epoch_loss, epoch_accuracy
 
 
 

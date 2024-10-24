@@ -2,7 +2,7 @@ import os
 
 from config import *
 
-from preprocessing.preprocessing import is_text_clean
+from utils.preprocessing import is_text_clean
 
 from datasets import Dataset
 

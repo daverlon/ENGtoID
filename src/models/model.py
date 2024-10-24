@@ -7,9 +7,10 @@ import numpy as np
 
 # base class
 class Model(nn.Module):
-    def __init__(self, name=None):
+    def __init__(self, name, hyper_params):
         super().__init__()
         self.name = name
+        self.hyper_params = hyper_params
         self.save_dir = self.init_save_dir()
 
         self.layer_stack = None
@@ -19,14 +20,17 @@ class Model(nn.Module):
         # logs
         self.train_losses = []
         self.train_accs = []
-        self.test_losses = []
-        self.test_accs = []
+        self.valid_losses = []
+        self.valid_accs = []
 
     def init(self, lr):
         self.layer_stack = self.init_layer_stack()
         self.criterion = self.init_criterion()
         self.optim = self.init_optim()  
         self.set_learning_rate(lr)
+
+    def get_name_with_hyper_params(self) -> str:
+        return f"{self.name}_{self.hyper_params["bs"]}_{self.hyper_params["lr"]}_{self.hyper_params["epochs"]}"
 
     def init_layer_stack(self):
         raise NotImplementedError("Required implementation for init_layer_stack.")
@@ -47,10 +51,11 @@ class Model(nn.Module):
         if not os.path.exists(self.save_dir): os.makedirs(self.save_dir)
 
         # save layer architecture
-        np.save(os.path.join(self.save_dir, self.name + "_model_layers.npy"), np.array(self.layer_stack))
+        if self.layer_stack is not None:
+            np.save(os.path.join(self.save_dir, "model_layers.npy"), np.array(self.layer_stack))
 
         # save weights
-        torch.save(self.state_dict(), os.path.join(self.save_dir, self.name + ".pth"))
+        torch.save(self.state_dict(), os.path.join(self.save_dir,"model.pth"))
 
         # save logs
         self.save_logs()
@@ -61,20 +66,20 @@ class Model(nn.Module):
             print("Error: must provide a name to save model logs.")
             return     
             
-        np.save(os.path.join(self.save_dir, self.name + "_train_losses.npy"), np.array(self.train_losses))
-        np.save(os.path.join(self.save_dir, self.name + "_train_accs.npy"), np.array(self.train_accs))
-        np.save(os.path.join(self.save_dir, self.name + "_test_losses.npy"), np.array(self.test_losses))
-        np.save(os.path.join(self.save_dir, self.name + "_test_accs.npy"), np.array(self.test_accs))
+        np.save(os.path.join(self.save_dir, "train_losses.npy"), np.array(self.train_losses))
+        np.save(os.path.join(self.save_dir, "train_accs.npy"), np.array(self.train_accs))
+        np.save(os.path.join(self.save_dir, "valid_losses.npy"), np.array(self.valid_losses))
+        np.save(os.path.join(self.save_dir, "valid_accs.npy"), np.array(self.valid_accs))
 
     def load_model(self):
         if self.name == "": 
             print("Error: must provide a name to load existing model checkpoint.")
             return False
-        if not os.path.exists(os.path.join(self.save_dir, self.name + ".pth")): 
+        if not os.path.exists(os.path.join(self.save_dir, "model.pth")): 
             print("Error: unable to load model checkpoint.")
             return False
             
-        self.load_state_dict(torch.load(os.path.join(self.save_dir, self.name + ".pth")))
+        self.load_state_dict(torch.load(os.path.join(self.save_dir, "model.pth"), weights_only=True))
     
         # now load logs
         self.load_logs()
@@ -85,13 +90,13 @@ class Model(nn.Module):
         if self.name == "": 
             print("Error: must provide a name to load existing model logs.")
             return
-        if not os.path.exists(os.path.join(self.save_dir, self.name + ".pth")): return
-        if not os.path.exists(os.path.join(self.save_dir, self.name + "_train_losses.npy")): return
+        if not os.path.exists(os.path.join(self.save_dir, "model.pth")): return
+        if not os.path.exists(os.path.join(self.save_dir, "train_losses.npy")): return
 
-        self.train_losses = np.load(os.path.join(self.save_dir, self.name + "_train_losses.npy")).tolist()
-        self.train_accs = np.load(os.path.join(self.save_dir, self.name + "_train_accs.npy")).tolist()
-        self.test_losses = np.load(os.path.join(self.save_dir, self.name + "_test_losses.npy")).tolist()
-        self.test_accs = np.load(os.path.join(self.save_dir, self.name + "_test_accs.npy")).tolist()
+        self.train_losses = np.load(os.path.join(self.save_dir, "train_losses.npy")).tolist()
+        self.train_accs = np.load(os.path.join(self.save_dir, "train_accs.npy")).tolist()
+        self.valid_losses = np.load(os.path.join(self.save_dir, "valid_losses.npy")).tolist()
+        self.valid_accs = np.load(os.path.join(self.save_dir, "valid_accs.npy")).tolist()
     
     def __repr__(self):
         return str(self.layer_stack)

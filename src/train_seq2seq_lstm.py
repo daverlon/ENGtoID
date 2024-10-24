@@ -12,8 +12,8 @@ if __name__ == "__main__":
 
     hyper_params = {
         "bs": 32,
-        "lr": 0.001,
-        "epochs": 5
+        "lr": 0.0001,
+        "epochs": 3
     }
 
     vocab_id = N_ID_TOKENS
@@ -30,10 +30,11 @@ if __name__ == "__main__":
     max_inference_tokens = 128
     encoder = LSTMEncoder(vocab_id, hidden_state_size, layers)
     decoder = LSTMDecoder(vocab_id, hidden_state_size, layers)
-    model = Seq2SeqLSTM("seq2seq_LSTM_1", encoder, decoder, max_inference_tokens)
+    model = Seq2SeqLSTM("seq2seq_LSTM_1_extend", hyper_params, encoder, decoder, max_inference_tokens)
     model.init(hyper_params["lr"])
+    model.load_model()
 
     # setup trainer
-    trainer = Trainer(hyper_params["epochs"], True)
+    trainer = Trainer(hyper_params["epochs"], save_checkpoints=False)
 
     trainer.fit(model, dataloader_train, None)

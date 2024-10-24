@@ -2,8 +2,8 @@ import os
 
 from config import *
 
-from preprocessing.preprocessing import load_vocab_from_disk, tokenize
-from preprocessing.coder import Coder
+from utils.preprocessing import load_vocab_from_disk, tokenize
+from utils.coder import Coder
 
 from datasets import Dataset
 from tqdm import tqdm
