@@ -42,7 +42,10 @@ class Model(nn.Module):
         raise NotImplementedError("Required implementation for init_optim.")
 
     def init_save_dir(self):
-        return os.path.join(os.path.dirname(__file__), "checkpoints/" + self.name) if self.name is not None else None
+        if self.name is None: return None
+        ret = os.path.join("./checkpoints/" + self.name) 
+        # os.makedirs(ret)
+        return ret
 
     def save_model(self):
         if self.name == "": 

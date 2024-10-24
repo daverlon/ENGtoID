@@ -1,5 +1,7 @@
 from config import PAD_IDX
 
+import os
+
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
@@ -41,7 +43,7 @@ class Trainer():
         for epoch in range(self.n_epochs):
             print(f"----- Epoch {epoch} -----")
 
-            # train_loss, train_acc = self.fit_epoch(epoch)
+            train_loss, train_acc = self.fit_epoch(epoch)
             valid_loss, valid_acc = self.valid_epoch(epoch)
             
             if self.save_checkpoints: model.save_model()
@@ -149,24 +151,20 @@ class Trainer():
             epoch_accs = []
             
             # load batch using dataloader
-            for i, batch in enumerate(self.valid_dataloader):
+            for i, batch in enumerate(tqdm(self.valid_dataloader)):
 
                 x, y = batch
                 x = x.to(self.device)
                 y = y.to(self.device)
 
-                y = y.view(-1)
-                # print(x, x.shape)
-                # print(y, y.shape)
-
                 # make the prediction
-                out = self.model(x, torch.tensor([x.shape[1]], requires_grad=False), None)
+                out = self.model(x, torch.tensor([x.shape[0]]), y)
                 out = out.view(-1, out.size(-1))
+                y = y.view(-1)
 
-                # calculate loss
+                # calculate the loss
                 loss = self.model.criterion(out, y)
-                batch_loss = loss.detach().cpu()
-
+                batch_loss = loss.item()
 
                 # calculate accuracy
                 pad_mask = (y != PAD_IDX)

@@ -37,6 +37,6 @@ if __name__ == "__main__":
     model.load_model()
 
     # setup trainer
-    trainer = Trainer(hyper_params["epochs"], False)
+    trainer = Trainer(hyper_params["epochs"], True)
 
     trainer.fit(model, dataloader_train, dataloader_valid)
