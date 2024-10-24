@@ -10,9 +10,9 @@ from torch.utils.data import DataLoader
 
 
 hyper_params = {
-    "bs": 48,
-    "lr": 0.001,
-    "epochs": 1
+    "bs": 32,
+    "lr": 0.0005,
+    "epochs": 5
 }
 
 if __name__ == "__main__":
