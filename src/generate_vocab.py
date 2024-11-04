@@ -19,6 +19,7 @@ if __name__ == "__main__":
     ds = Dataset.load_from_disk(TRAIN_CLEAN_PATH)["text"]
     print(f"[Vocab] Loaded {len(ds)} clean train samples.")
 
+    # ignores = [PAD, EOS, SOS, UNK]
     ignores = [PAD, EOS, UNK]
 
     for text in tqdm(ds):
@@ -37,11 +38,14 @@ if __name__ == "__main__":
     # vocab["id"] = sorted(vocab["id"])
     # vocab["eng"] = sorted(vocab["eng"])
 
+    # vocab["id"] = [PAD, EOS, SOS, UNK] + list(vocab["id"])
+    # vocab["eng"] = [PAD, EOS, SOS, UNK] + list(vocab["eng"])
+
     vocab["id"] = [PAD, EOS, UNK] + list(vocab["id"])
     vocab["eng"] = [PAD, EOS, UNK] + list(vocab["eng"])
 
-    print(f"[Vocab] Found {len(vocab["id"])} Indonesian tokens.")
-    print(f"[Vocab] Found {len(vocab["eng"])} English tokens.")
+    print(f"[Vocab] Found {len(vocab['id'])} Indonesian tokens.")
+    print(f"[Vocab] Found {len(vocab['eng'])} English tokens.")
 
     save_vocab_to_disk(vocab, VOCAB_PATH)
     print("[Vocab] Saved vocab to:", VOCAB_PATH)

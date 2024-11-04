@@ -10,8 +10,8 @@ from torch.utils.data import DataLoader
 
 
 hyper_params = {
-    "bs": 32,
-    "lr": 0.0005,
+    "bs": 128,
+    "lr": 0.00001,
     "epochs": 5
 }
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     dataset_valid = ENGtoID(True)
     dataloader_train = DataLoader(dataset=dataset_train, batch_size=hyper_params["bs"], shuffle=True, collate_fn=ENGtoID.collate_fn)
     # having a batch size for the valid dataloader makes the valid_epoch loop more similar to the epoch (train) loop
-    dataloader_valid = DataLoader(dataset=dataset_valid, batch_size=1, shuffle=False)
+    dataloader_valid = DataLoader(dataset=dataset_valid, batch_size=hyper_params["bs"], shuffle=False, collate_fn=ENGtoID.collate_fn)
 
     hidden_state_size = 512
     layers = 1

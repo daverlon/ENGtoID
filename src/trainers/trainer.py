@@ -14,6 +14,7 @@ class Trainer():
         self.device = self.get_default_device()
         self.save_checkpoints = save_checkpoints
         self.writer = SummaryWriter(f'./runs')
+        self.model = None
 
     def set_device(self, device):
         self.device = device
@@ -30,7 +31,7 @@ class Trainer():
 
     # model: torch.nn.Module
     # data: torch.DataLoader
-    def fit(self, model, train_dataloader, valid_dataloader):
+    def fit(self, model, train_dataloader, valid_dataloader, only_valid=False):
         # get data
         self.train_dataloader = train_dataloader
         self.valid_dataloader = valid_dataloader
@@ -43,9 +44,13 @@ class Trainer():
         for epoch in range(self.n_epochs):
             print(f"----- Epoch {epoch} -----")
 
-            train_loss, train_acc = self.fit_epoch(epoch)
+            if not only_valid:
+                train_loss, train_acc = self.fit_epoch(epoch)
             valid_loss, valid_acc = self.valid_epoch(epoch)
-            
+            if only_valid:
+                break
+
+        if not only_valid:
             if self.save_checkpoints: model.save_model()
 
         print("---\nFinished training.")
@@ -62,8 +67,10 @@ class Trainer():
         epoch_losses = []
         epoch_accs = []
 
+        pbar = tqdm(self.train_dataloader)
+
         # get the batch from the dataloader
-        for i, batch in enumerate(tqdm(self.train_dataloader)):
+        for i, batch in enumerate(pbar):
 
             # send the data to the same device as the model
             x, y, x_l, _ = batch
@@ -103,12 +110,13 @@ class Trainer():
 
             # add data to tensorboard
             step = epoch * n_batches + i
-            self.writer.add_scalars(f"Loss({self.model.name})", {'train':batch_loss}, step)
-            self.writer.add_scalars(f"Accuracy({self.model.name})", {'train':batch_accuracy}, step)
+            self.writer.add_scalars(f"Loss({self.model.get_name_with_hyper_params()})", {'train':batch_loss}, step)
+            self.writer.add_scalars(f"Accuracy({self.model.get_name_with_hyper_params()})", {'train':batch_accuracy}, step)
 
-            print(f"[Valid] Batch: {i}/{n_batches}")
-            print(f"\tTrain Loss: {batch_loss:.6f}")
-            print(f"\tTrain Acc: {batch_accuracy:.6f}")
+            # print(f"[Train] Batch: {i}/{n_batches}")
+            # print(f"\tTrain Loss: {batch_loss:.6f}")
+            # print(f"\tTrain Acc: {batch_accuracy:.6f}")
+            pbar.set_description(f"[Train]: Loss: {batch_loss:.6f}, Acc: {batch_accuracy:.6f}")
 
             # clean up
             del correct
@@ -131,15 +139,16 @@ class Trainer():
                 plt.close()
         # end of loop
 
-        epoch_loss = epoch_loss / n_batches
+        epoch_loss = (epoch_loss / n_batches)
         print(f"[Train] Average Epoch Loss: {epoch_loss:.6f}")
-        epoch_accuracy = (epoch_accuracy / n_batches) * 100.0
+        epoch_accuracy = (epoch_accuracy / n_batches) / 100.0
         print(f"[Train] Average Epoch Accuracy: {epoch_accuracy:.6f}")
 
         return epoch_loss, epoch_accuracy
 
     # based on the training epoch method above, but without training (no .backward(), etc)
     def valid_epoch(self, epoch) -> float:
+
         self.model.eval()
         with torch.no_grad():
 
@@ -151,14 +160,17 @@ class Trainer():
             epoch_accs = []
             
             # load batch using dataloader
-            for i, batch in enumerate(tqdm(self.valid_dataloader)):
+            pbar = tqdm(self.valid_dataloader)
+            for i, batch in enumerate(pbar):
 
-                x, y = batch
+                # x, y = batch
+                x, y, x_l, _ = batch
                 x = x.to(self.device)
                 y = y.to(self.device)
 
                 # make the prediction
-                out = self.model(x, torch.tensor([x.shape[0]]), y)
+                # out = self.model(x, torch.tensor([x.shape[0]]), y)
+                out = self.model(x, x_l, y)
                 out = out.view(-1, out.size(-1))
                 y = y.view(-1)
 
@@ -181,12 +193,13 @@ class Trainer():
 
                 # add data to tensorboard
                 step = epoch * n_batches + i
-                self.writer.add_scalars(f"Loss({self.model.name})", {'valid':batch_loss}, step)
-                self.writer.add_scalars(f"Accuracy({self.model.name})", {'valid':batch_accuracy}, step)
+                self.writer.add_scalars(f"Loss({self.model.get_name_with_hyper_params()})", {'valid':batch_loss}, step)
+                self.writer.add_scalars(f"Accuracy({self.model.get_name_with_hyper_params()})", {'valid':batch_accuracy}, step)
 
-                print(f"[Valid] Batch: {i}/{n_batches}")
-                print(f"\tValid Loss: {batch_loss:.6f}")
-                print(f"\tValid Acc: {batch_accuracy:.6f}")
+                # print(f"[Valid] Batch: {i}/{n_batches}")
+                # print(f"\tValid Loss: {batch_loss:.6f}")
+                # print(f"\tValid Acc: {batch_accuracy:.6f}")
+                pbar.set_description(f"[Valid]: Loss: {batch_loss:.6f}, Acc: {batch_accuracy:.6f}")
 
                 # clean up
                 del correct
@@ -197,23 +210,26 @@ class Trainer():
                 del x
                 torch.cuda.empty_cache()
                 
-                if i % 100 == 0 and i > 0:
-                    plt.title(self.model.get_name_with_hyper_params() + " Validation Performance")
-                    plt.grid()
-                    plt.xlabel("Batch")
-                    plt.plot(self.model.valid_losses, c='b', label="Loss")
-                    plt.plot(self.model.valid_accs, c='y', label="Acc %")
-                    plt.legend()
-                    plt.savefig("./checkpoints/" + self.model.name + "/valid_plot_full.png")
-                    plt.close()
+                # if i % 100 == 0 and i > 0:
+            # print("SAVING.")
+            plt.title(self.model.get_name_with_hyper_params() + " Validation Performance")
+            plt.grid()
+            plt.xlabel("Batch")
+            plt.plot(self.model.valid_losses, c='b', label="Loss")
+            plt.plot(self.model.valid_accs, c='y', label="Acc %")
+            plt.legend()
+
+            if not os.path.exists("./checkpoints"): os.mkdir("./checkpoints")
+            if not os.path.exists("./checkpoints/" + self.model.name): os.mkdir("./checkpoints/" + self.model.name)
+
+            plt.savefig("./checkpoints/" + self.model.name + "/valid_plot_full.png")
+            plt.close()
             # end of loop
 
-            epoch_loss = epoch_loss / n_batches
+            epoch_loss = (epoch_loss / n_batches)
             print(f"[Valid] Average Epoch Loss: {epoch_loss:.6f}")
-            epoch_accuracy = (epoch_accuracy / n_batches) * 100.0
+            epoch_accuracy = (epoch_accuracy / n_batches) 
             print(f"[Valid] Average Epoch Accuracy: {epoch_accuracy:.6f}")
             
             return epoch_loss, epoch_accuracy
-
-
 

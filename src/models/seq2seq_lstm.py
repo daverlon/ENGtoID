@@ -2,6 +2,8 @@ from config import *
 
 from .model import Model
 
+import random
+
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -35,12 +37,14 @@ class LSTMDecoder(nn.Module):
         return output, hidden, cell
 
 class Seq2SeqLSTM(Model):
-    def __init__(self, name, hyper_params, encoder, decoder, max_inference_tokens=64):
-        super().__init__(name=name, hyper_params=hyper_params)
+    def __init__(self, name, encoder, decoder, max_inference_tokens=64):
+        # super().__init__(name=name, hyper_params=hyper_params)
+        super().__init__(name=name)
         self.encoder = encoder
         self.decoder = decoder
         self.max_inference_tokens = max_inference_tokens
-
+        self.teacher_forcing_probability = 0.0
+    
     def init_layer_stack(self):
         # no need for layer stack (custom forward pass)
         # forward pass uses input -> encoder -> decoder (recurrent decoder loop)
@@ -54,7 +58,9 @@ class Seq2SeqLSTM(Model):
         # lr will be overridden by self.init()
         return Adam(params=self.parameters(), lr=0)
         
-    def forward(self, x, x_lengths, y=None):
+    # teacher forcing should be a probability between 0-1
+    # 1.0 for always on, 0.0 for always off
+    def forward(self, x, x_lengths, y):
 
         #
         # https://en.wikipedia.org/wiki/Long_short-term_memory
@@ -72,10 +78,15 @@ class Seq2SeqLSTM(Model):
         # output sequence container
         outputs = []
 
-        # init the input tensor
-        # x.size: batch size,
-        # dim1 = 1: single token holder
-        input = torch.zeros((x.size(0), 1), dtype=torch.long, device=x.device)
+        # init the input tensor (y at t=0)
+        # input = y[:, 0].unsqueeze(1) # set the first input to y at t=0
+        # set the first tokens for the input batch as <SOS>
+        # since the first tokens in x are already SOS, just use those
+
+        if y is not None and random.random() < self.teacher_forcing_probability:
+            input = y[:, 0].unsqueeze(1)
+        else:
+            input = x[:, 0].unsqueeze(1)
         
         #
         # https://en.wikipedia.org/wiki/Teacher_forcing
@@ -110,7 +121,10 @@ class Seq2SeqLSTM(Model):
                 # the ':' in the first dimension accesses each sequence in the batch
                 # the 't' in the second dimension accesses each value at index t (this timestep)
                 #
-                input = y[:, t].unsqueeze(1)  # Use the next token from y as input
+                if random.random() < self.teacher_forcing_probability:
+                    input = y[:, t].unsqueeze(1)  # Use the next token from y as input
+                else:
+                    input = output.argmax(dim=-1)
 
                 # stop generating output tokens once an EOS token is generated
                 if (input == EOS_IDX).all():

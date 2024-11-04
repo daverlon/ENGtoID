@@ -45,6 +45,9 @@ def tokenize(s: str) -> map:
 
     ret = {"id": list(), "eng": list()}
 
+    # ret["id"].append(SOS)
+    # ret["eng"].append(SOS)
+
     id, eng = [*s.split("###>")]
 
     # id

@@ -8,8 +8,6 @@ from utils.coder import Coder
 from datasets import Dataset
 from tqdm import tqdm
 
-END_TOKEN = "<EOS>" # end of sentence
-
 if __name__ == "__main__":
 
     if not os.path.exists(TRAIN_CLEAN_PATH) or not os.path.exists(VALID_CLEAN_PATH):

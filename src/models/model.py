@@ -7,10 +7,11 @@ import numpy as np
 
 # base class
 class Model(nn.Module):
-    def __init__(self, name, hyper_params):
+    # def __init__(self, name, hyper_params):
+    def __init__(self, name):
         super().__init__()
         self.name = name
-        self.hyper_params = hyper_params
+        # self.hyper_params = hyper_params
         self.save_dir = self.init_save_dir()
 
         self.layer_stack = None
@@ -30,7 +31,8 @@ class Model(nn.Module):
         self.set_learning_rate(lr)
 
     def get_name_with_hyper_params(self) -> str:
-        return f"{self.name}_{self.hyper_params["bs"]}_{self.hyper_params["lr"]}_{self.hyper_params["epochs"]}"
+        # return f"{self.name}_{self.hyper_params['bs']}_{self.hyper_params['lr']}_{self.hyper_params['epochs']}"
+        return f"{self.name}"
 
     def init_layer_stack(self):
         raise NotImplementedError("Required implementation for init_layer_stack.")
@@ -62,7 +64,7 @@ class Model(nn.Module):
 
         # save logs
         self.save_logs()
-        print("Saved model checkpoint to:", self.save_dir)
+        # print("Saved model checkpoint to:", self.save_dir)
 
     def save_logs(self):
         if self.name == "": 
