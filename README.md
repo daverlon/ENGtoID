@@ -2,7 +2,7 @@
 
 A sequence-to-sequence LSTM encoder-decoder model for translating English text into Bahasa Indonesia, trained on the [opus-Indonesian-to-English](https://huggingface.co/datasets/kaitchup/opus-Indonesian-to-English) dataset (~1 million sentence pairs) using a cloud instance RTX 4090.
 
-**[View the Jupyter Notebook](./ICT303%20-%20Assignment%202.ipynb)**
+**[View the Jupyter Notebook](./src/ICT303%20-%20Assignment%202.ipynb)**
 
 ---
 
